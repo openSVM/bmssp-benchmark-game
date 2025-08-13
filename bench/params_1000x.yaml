@@ -8,4 +8,4 @@ sources_k: [4, 16]
 trials: 3
 seed: 42
 maxw: 100
-threads: [1, 2, 4, 8, 16, 32]
+threads: [32]
