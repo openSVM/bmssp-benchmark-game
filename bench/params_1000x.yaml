@@ -1,0 +1,11 @@
+graphs:
+  # ~2.56M nodes, ~10.2M directed edges; stresses memory/CPU without ER's O(n^2) generator
+  - { type: grid, rows: 1600, cols: 1600 }
+  # ~1.0M nodes, ~5M edges (m ~ 5); BA generator is linear in edges
+  - { type: ba, n: 1000000, m0: 5, m: 5 }
+bounds: [100, 200, 400, 800]
+sources_k: [4, 16]
+trials: 3
+seed: 42
+maxw: 100
+threads: [1, 2, 4, 8, 16, 32]

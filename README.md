@@ -4,6 +4,17 @@ Implementation of the algorithm in multiple languages to compare performance in 
 
 Languages currently wired in this repo: Rust, C, C++, Nim, Crystal, Kotlin (JAR), Elixir (.exs), Erlang (.erl).
 
+## Benchmark snapshot
+
+| impl          | lang   | graph | n    | m    | k | B  | seed | threads | time_ns | popped | edges_scanned | heap_pushes | B_prime | mem_bytes |
+|---------------|--------|-------|------|------|---|----|------|---------|---------|--------|---------------|-------------|---------|-----------|
+| rust-bmssp    | Rust   | grid  | 2500 | 9800 | 4 | 50 | 1    | 1       | 741251  | 868    | 3423          | 1047        | 50      | 241824    |
+| c-bmssp       | C      | grid  | 2500 | 9800 | 4 | 50 | 1    | 1       | 99065   | 1289   | 5119          | 1565        | 50      | 176800    |
+| cpp-bmssp     | C++    | grid  | 2500 | 9800 | 4 | 50 | 1    | 1       | 117480  | 1064   | 4224          | 1261        | 50      | 176800    |
+| kotlin-bmssp  | Kotlin | grid  | 2500 | 9800 | 4 | 50 | 1    | 1       | 5308820 | 1102   | 4386          | 1309        | 50      | 196800    |
+| elixir-bmssp  | Elixir | grid  | 2500 | 9800 | 4 | 50 | 1    | 1       | 5410039 | 870    | 3447          | 1047        | 50      | 196800    |
+| erlang-bmssp  | Erlang | grid  | 2500 | 9800 | 4 | 50 | 1    | 1       | 1155739 | 691    | 2701          | 818         | 50      | 196800    |
+
 Rust implementation of **bounded multi-source shortest paths** (multi-source Dijkstra cut off at `B`).
 
 ## Run
@@ -15,6 +26,9 @@ python3 bench/runner.py --release --out results
 
 # fast iteration
 python3 bench/runner.py --quick --out results-dev --timeout-seconds 20 --jobs 2
+
+# 1000x larger graphs (heavy):
+python3 bench/runner.py --params bench/params_1000x.yaml --release --jobs 4 --timeout-seconds 600 --out results
 ```
 
 ### One-time setup scripts

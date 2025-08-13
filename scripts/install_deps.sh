@@ -20,7 +20,13 @@ done
 
 have() { command -v "$1" >/dev/null 2>&1; }
 confirm() { [[ "$YES" = 1 ]] && return 0; read -r -p "$1 [y/N] " ans; [[ "$ans" =~ ^([yY][eE][sS]|[yY])$ ]]; }
-ensure_path_dir() { case ":$PATH:" in *":$1:"*) :;; *) export PATH="$1:$PATH";; esac }
+ensure_path_dir() {
+  case ":$PATH:" in *":$1:"*) :;; *) export PATH="$1:$PATH";; esac
+  # Persist in GitHub Actions across steps
+  if [[ -n "${GITHUB_PATH:-}" ]]; then
+    echo "$1" >> "$GITHUB_PATH" || true
+  fi
+}
 
 OS=$(uname -s)
 DISTRO_ID=""
@@ -112,7 +118,15 @@ echo "==> Checking Crystal + shards"
 install_crystal() {
   if [[ "$OS" == "Darwin" ]]; then have brew && brew install crystal shards || true; return; fi
   case "$DISTRO_ID" in
-    ubuntu|debian|linuxmint) sudo apt-get update && sudo apt-get install -y crystal shards || true ;;
+    ubuntu|debian|linuxmint)
+      # Add official Crystal apt repo to get recent versions
+      sudo apt-get update || true
+      if ! apt-cache policy crystal 2>/dev/null | grep -q crystal; then
+        curl -fsSL https://dist.crystal-lang.org/apt/setup.sh | sudo bash || true
+      fi
+      sudo apt-get update || true
+      sudo apt-get install -y crystal shards || true
+      ;;
     fedora) sudo dnf install -y crystal shards || true ;;
     arch|manjaro) sudo pacman -Sy --noconfirm crystal shards || true ;;
     opensuse*|sles) sudo zypper install -y crystal shards || true ;;

@@ -59,6 +59,8 @@ def generate_shared_inputs(graph_cfg, k, seed, maxw, out_dir):
     elif gtype == 'er':
         n = int(g['n'])
         p = float(g['p'])
+        if n > 200_000 and p * n > 10:
+            print(f"[warn] ER graph with n={n} and p={p} will be extremely dense/heavy to generate (O(n^2)); consider BA/grid instead.", file=sys.stderr)
         for u in range(n):
             for v in range(n):
                 if u == v: continue
@@ -137,12 +139,17 @@ def run_rust(graph_cfg, B, k, trials, seed, maxw, threads, bin_path, timeout_s=0
 
 def build_crystal(root):
     crdir = root / 'impls' / 'crystal'
-    if not shutil.which('crystal'):
-        print('[warn] Crystal compiler not found in PATH; skipping', file=sys.stderr)
-        return None
-    subprocess.run(['shards', 'build', '--release'], cwd=crdir, check=True)
-    # produced bin at bin/bmssp_cr
-    return crdir / 'bin' / 'bmssp_cr'
+    # Prefer building if toolchain exists; otherwise fall back to prebuilt binary if present.
+    bin_path = crdir / 'bin' / 'bmssp_cr'
+    if shutil.which('crystal') and shutil.which('shards'):
+        subprocess.run(['shards', 'build', '--release'], cwd=crdir, check=True)
+        return bin_path
+    # Fallback: use existing binary if available
+    if bin_path.exists() and os.access(bin_path, os.X_OK):
+        print('[info] Using prebuilt Crystal binary (compiler not found).', file=sys.stderr)
+        return bin_path
+    print('[warn] Crystal toolchain not found and no prebuilt binary present; skipping Crystal', file=sys.stderr)
+    return None
 
 def run_crystal(bin_path, graph_cfg, B, k, trials, seed, maxw, timeout_s=0):
     args = [str(bin_path), '--json', '--trials', str(trials), '--k', str(k), '--B', str(B), '--seed', str(seed), '--maxw', str(maxw)]
@@ -153,7 +160,9 @@ def run_crystal(bin_path, graph_cfg, B, k, trials, seed, maxw, timeout_s=0):
     elif gtype == 'er':
         args += ['--n', str(graph_cfg['n']), '--p', str(graph_cfg['p'])]
     else:
-        raise SystemExit(f'unsupported graph type: {gtype}')
+        # Gracefully skip unsupported graph types for Crystal to avoid aborting smoke runs.
+        print(f'[info] Crystal impl does not support graph type "{gtype}" yet; skipping', file=sys.stderr)
+        return []
     try:
         p = subprocess.run(args, check=True, capture_output=True, text=True, timeout=(timeout_s or None))
     except subprocess.TimeoutExpired:

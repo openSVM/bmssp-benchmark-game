@@ -26,3 +26,6 @@ impls/erlang/*.beam
 # OS cruft
 .DS_Store
 Thumbs.db
+
+# repo-local docs (not for git)
+GIGAPLAN.md

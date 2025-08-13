@@ -16,10 +16,9 @@ jobs:
         run: |
           cargo build -p bmssp
           cargo test -p bmssp --all-features -- --nocapture
-      - name: Install minimal deps
+      - name: Install deps (all languages)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential default-jdk elixir erlang
+          bash scripts/install_deps.sh --yes || true
           python3 -m pip install --user -r bench/requirements.txt || true
       - name: Quick smoke
         run: |
@@ -39,30 +38,9 @@ jobs:
       - name: Cargo test (unit)
         run: |
           cargo test -p bmssp --verbose
-      - name: Install Crystal
+      - name: Install all deps (Linux)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl gnupg build-essential
-          curl -fsSL https://dist.crystal-lang.org/apt/setup.sh | sudo bash
-          sudo apt-get install -y crystal shards
-      - name: Install JDK/Kotlin, Elixir, Erlang (with SDKMAN fallback)
-        run: |
-          set -euxo pipefail
-          sudo apt-get update
-          sudo apt-get install -y default-jdk elixir erlang || true
-          if ! command -v java >/dev/null; then sudo apt-get install -y default-jdk || true; fi
-          if ! command -v kotlinc >/dev/null; then
-            # SDKMAN fallback for Kotlin
-            curl -s "https://get.sdkman.io" | bash
-            source "$HOME/.sdkman/bin/sdkman-init.sh"
-            sdk install java 21.0.3-tem || true
-            sdk install kotlin 2.0.20 || true
-            kotlinc -version || true
-          fi
-      - name: Install Nim
-        uses: iffy/install-nim@v5
-        with:
-          version: stable
+          bash scripts/install_deps.sh --yes
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -80,3 +58,39 @@ jobs:
         with:
           name: results
           path: results
+
+  big-bench-1000x:
+    # manual trigger only to avoid heavy CI on every push
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install all deps
+        run: |
+          bash scripts/install_deps.sh --yes
+          python3 -m pip install --user -r bench/requirements.txt || true
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Run 1000x bench
+        run: |
+          python3 bench/runner.py --params bench/params_1000x.yaml --release --jobs 4 --timeout-seconds 1800 --out results-1000x
+      - name: Generate plots
+        run: |
+          python3 bench/plots.py results-1000x/agg-*\.csv --out results-1000x || true
+      - name: Build report
+        run: |
+          CSV=$(ls -1 results-1000x/agg-*.csv | tail -n1)
+          META=$(ls -1 results-1000x/meta-*.yaml | tail -n1 || true)
+          python3 bench/make_report.py --csv "$CSV" ${META:+--meta "$META"} --out results-1000x
+      - name: Upload 1000x artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-1000x
+          path: results-1000x
