@@ -1,0 +1,9 @@
+{
+    "version": "1.0.0",
+    "author": "you",
+    "license": "MIT",
+    "bin": {
+        "bmssp_nim": "src/main.nim"
+    },
+    "name": "bmssp_nim"
+}

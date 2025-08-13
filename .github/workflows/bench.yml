@@ -1,0 +1,82 @@
+name: bench
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request: {}
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build and test (Rust)
+        run: |
+          cargo build -p bmssp
+          cargo test -p bmssp --all-features -- --nocapture
+      - name: Install minimal deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential default-jdk elixir erlang
+          python3 -m pip install --user -r bench/requirements.txt || true
+      - name: Quick smoke
+        run: |
+          python3 bench/runner.py --quick --smoke --timeout-seconds 20 --out results-dev
+      - name: Upload smoke results
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-dev
+          path: |
+            results-dev
+
+  rust-bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cargo test (unit)
+        run: |
+          cargo test -p bmssp --verbose
+      - name: Install Crystal
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl gnupg build-essential
+          curl -fsSL https://dist.crystal-lang.org/apt/setup.sh | sudo bash
+          sudo apt-get install -y crystal shards
+      - name: Install JDK/Kotlin, Elixir, Erlang (with SDKMAN fallback)
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y default-jdk elixir erlang || true
+          if ! command -v java >/dev/null; then sudo apt-get install -y default-jdk || true; fi
+          if ! command -v kotlinc >/dev/null; then
+            # SDKMAN fallback for Kotlin
+            curl -s "https://get.sdkman.io" | bash
+            source "$HOME/.sdkman/bin/sdkman-init.sh"
+            sdk install java 21.0.3-tem || true
+            sdk install kotlin 2.0.20 || true
+            kotlinc -version || true
+          fi
+      - name: Install Nim
+        uses: iffy/install-nim@v5
+        with:
+          version: stable
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Run bench runner (release)
+        run: |
+          python3 -m pip install --user -r bench/requirements.txt || true
+          python3 bench/runner.py --release --jobs 2 --timeout-seconds 120 --out results
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: results
+          path: results

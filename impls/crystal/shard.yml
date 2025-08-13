@@ -1,0 +1,9 @@
+name: bmssp_cr
+version: 0.1.0
+license: MIT
+authors:
+  - rin <rin@opensvm.com>
+
+targets:
+  bmssp_cr:
+    main: src/main.cr

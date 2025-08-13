@@ -1,0 +1,10 @@
+graphs:
+  - { type: grid, rows: 20, cols: 20 }
+  - { type: er, n: 200, p: 0.02 }
+  - { type: ba, n: 200, m0: 3, m: 3 }
+bounds: [25]
+sources_k: [4]
+trials: 1
+seed: 1
+maxw: 10
+threads: [1]

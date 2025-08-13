@@ -1,0 +1,90 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/bmssp.schema.json",
+    "title": "BMSSP Benchmark Row",
+    "type": "object",
+    "additionalProperties": true,
+    "required": [
+        "impl",
+        "lang",
+        "graph",
+        "k",
+        "B",
+        "seed",
+        "time_ns",
+        "popped",
+        "edges_scanned",
+        "heap_pushes",
+        "B_prime",
+        "mem_bytes"
+    ],
+    "properties": {
+        "impl": {
+            "type": "string"
+        },
+        "lang": {
+            "type": "string"
+        },
+        "graph": {
+            "enum": [
+                "grid",
+                "er",
+                "ba"
+            ]
+        },
+        "n": {
+            "type": "integer",
+            "minimum": 1
+        },
+        "m": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "k": {
+            "type": "integer",
+            "minimum": 1
+        },
+        "B": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "seed": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "threads": {
+            "type": "integer",
+            "minimum": 1
+        },
+        "time_ns": {
+            "type": "integer",
+            "minimum": 1
+        },
+        "popped": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "edges_scanned": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "heap_pushes": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "B_prime": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "mem_bytes": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "graph_cfg": {
+            "type": [
+                "object",
+                "null"
+            ]
+        }
+    }
+}
