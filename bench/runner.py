@@ -291,12 +291,17 @@ def build_elixir(root):
 
 def run_elixir(exs_path, graph_cfg, B, k, trials, seed, maxw, timeout_s=0):
     gtype = graph_cfg['type']
+    if gtype == 'ba':
+        # Elixir implementation currently lacks BA support; skip to avoid hard failures
+        print(f"[info] Elixir impl does not support graph type \"{gtype}\" yet; skipping", file=sys.stderr)
+        return []
     args = ['elixir', str(exs_path), '--trials', str(trials), '--k', str(k), '--B', str(B), '--seed', str(seed), '--maxw', str(maxw), '--graph', gtype]
     if gtype == 'grid':
         args += ['--rows', str(graph_cfg['rows']), '--cols', str(graph_cfg['cols'])]
     elif gtype == 'er':
         args += ['--n', str(graph_cfg['n']), '--p', str(graph_cfg['p'])]
     elif gtype == 'ba':
+        # See above early return; keep branch for completeness if support is added later
         args += ['--n', str(graph_cfg['n']), '--m0', str(graph_cfg.get('m0',5)), '--m', str(graph_cfg.get('m',5))]
     else:
         return []
@@ -304,6 +309,9 @@ def run_elixir(exs_path, graph_cfg, B, k, trials, seed, maxw, timeout_s=0):
         p = subprocess.run(args, check=True, capture_output=True, text=True, timeout=(timeout_s or None))
     except subprocess.TimeoutExpired:
         print(f'[warn] elixir run timed out: {args}', file=sys.stderr)
+        return []
+    except subprocess.CalledProcessError as e:
+        print(f'[warn] elixir run failed (exit {e.returncode}); skipping: {args}', file=sys.stderr)
         return []
     rows = [json.loads(line) for line in p.stdout.splitlines() if line.strip()]
     for r in rows:
@@ -320,6 +328,9 @@ def build_erlang(root):
 
 def run_erlang(beam_path, graph_cfg, B, k, trials, seed, maxw, timeout_s=0):
     gtype = graph_cfg['type']
+    if gtype == 'ba':
+        print(f"[info] Erlang impl does not support graph type \"{gtype}\" yet; skipping", file=sys.stderr)
+        return []
     args = ['erl', '-noshell', '-pa', str(beam_path.parent), '-s', 'bmssp', 'main', '-s', 'init', 'stop', '-extra', '--trials', str(trials), '--k', str(k), '--B', str(B), '--seed', str(seed), '--maxw', str(maxw), '--graph', gtype]
     if gtype == 'grid':
         args += ['--rows', str(graph_cfg['rows']), '--cols', str(graph_cfg['cols'])]
@@ -333,6 +344,9 @@ def run_erlang(beam_path, graph_cfg, B, k, trials, seed, maxw, timeout_s=0):
         p = subprocess.run(args, check=True, capture_output=True, text=True, timeout=(timeout_s or None))
     except subprocess.TimeoutExpired:
         print(f'[warn] erlang run timed out: {args}', file=sys.stderr)
+        return []
+    except subprocess.CalledProcessError as e:
+        print(f'[warn] erlang run failed (exit {e.returncode}); skipping: {args}', file=sys.stderr)
         return []
     rows = [json.loads(line) for line in p.stdout.splitlines() if line.strip()]
     for r in rows:
@@ -395,6 +409,8 @@ def main():
     ap.add_argument('--smoke', action='store_true', help='use bench/smoke_matrix.yaml and enforce basic invariants')
     ap.add_argument('--parity', action='store_true', help='check simple cross-impl parity on grid graphs')
     ap.add_argument('--shared-inputs', action='store_true', help='use canonical shared graph+sources files for supported implementations')
+    ap.add_argument('--include-impls', default='', help='comma-separated list of impl keys to include (rust,c,cpp,kotlin,crystal,elixir,erlang,nim)')
+    ap.add_argument('--exclude-impls', default='', help='comma-separated list of impl keys to exclude')
     args = ap.parse_args()
 
     # build
@@ -405,39 +421,52 @@ def main():
         subprocess.run(['cargo', 'build', '-p', 'bmssp'], cwd=ROOT, check=True)
         rust_bin = ROOT / 'target' / 'debug' / 'bmssp-cli'
 
+    # Impl filters
+    all_keys = {'rust','c','cpp','kotlin','crystal','elixir','erlang','nim'}
+    inc = set(x.strip() for x in args.include_impls.split(',') if x.strip()) or set(all_keys)
+    exc = set(x.strip() for x in args.exclude_impls.split(',') if x.strip())
+    sel = (inc & all_keys) - exc
+
     crystal_bin = None
     try:
-        crystal_bin = build_crystal(ROOT)
+        if 'crystal' in sel:
+            crystal_bin = build_crystal(ROOT)
     except Exception as e:
         print(f'[warn] crystal build skipped: {e}', file=sys.stderr)
     c_bin = None
     try:
-        c_bin = build_c(ROOT)
+        if 'c' in sel:
+            c_bin = build_c(ROOT)
     except Exception as e:
         print(f'[warn] c build skipped: {e}', file=sys.stderr)
     cpp_bin = None
     try:
-        cpp_bin = build_cpp(ROOT)
+        if 'cpp' in sel:
+            cpp_bin = build_cpp(ROOT)
     except Exception as e:
         print(f'[warn] cpp build skipped: {e}', file=sys.stderr)
     kotlin_jar = None
     try:
-        kotlin_jar = build_kotlin(ROOT)
+        if 'kotlin' in sel:
+            kotlin_jar = build_kotlin(ROOT)
     except Exception as e:
         print(f'[warn] kotlin build skipped: {e}', file=sys.stderr)
     elixir_exs = None
     try:
-        elixir_exs = build_elixir(ROOT)
+        if 'elixir' in sel:
+            elixir_exs = build_elixir(ROOT)
     except Exception as e:
         print(f'[warn] elixir build skipped: {e}', file=sys.stderr)
     erlang_beam = None
     try:
-        erlang_beam = build_erlang(ROOT)
+        if 'erlang' in sel:
+            erlang_beam = build_erlang(ROOT)
     except Exception as e:
         print(f'[warn] erlang build skipped: {e}', file=sys.stderr)
     nim_bin = None
     try:
-        nim_bin = build_nim(ROOT)
+        if 'nim' in sel:
+            nim_bin = build_nim(ROOT)
     except Exception as e:
         print(f'[warn] nim build skipped: {e}', file=sys.stderr)
 
@@ -509,41 +538,46 @@ def main():
             for B in cfg['bounds']:
                 for k in cfg['sources_k']:
                     # Rust: run serially across thread counts to avoid CPU contention
-                    for th in threads_list:
-                        shared = None
-                        if args.shared_inputs:
-                            shared = generate_shared_inputs(g, k, cfg['seed'], cfg['maxw'], out_dir)
-                        rows = run_rust(g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], th, rust_bin, timeout_s=args.timeout_seconds, shared_inputs=shared)
-                        maybe_validate_and_add(rows)
+                    if 'rust' in sel:
+                        for th in threads_list:
+                            shared = None
+                            if args.shared_inputs:
+                                shared = generate_shared_inputs(g, k, cfg['seed'], cfg['maxw'], out_dir)
+                            rows = run_rust(g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], th, rust_bin, timeout_s=args.timeout_seconds, shared_inputs=shared)
+                            maybe_validate_and_add(rows)
 
                     # Prepare non-Rust tasks
                     tasks = []
-                    if crystal_bin is not None:
+                    if 'crystal' in sel and crystal_bin is not None:
                         # Crystal: no shared-input support yet
                         tasks.append((run_crystal, (crystal_bin, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds)))
-                    if c_bin is not None:
+                    if 'c' in sel and c_bin is not None:
                         shared = None
                         if args.shared_inputs:
                             shared = generate_shared_inputs(g, k, cfg['seed'], cfg['maxw'], out_dir)
                         tasks.append((run_c, (c_bin, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds, shared)))
-                    if cpp_bin is not None:
+                    if 'cpp' in sel and cpp_bin is not None:
                         shared = None
                         if args.shared_inputs:
                             shared = generate_shared_inputs(g, k, cfg['seed'], cfg['maxw'], out_dir)
                         tasks.append((run_cpp, (cpp_bin, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds, shared)))
-                    if kotlin_jar is not None:
+                    if 'kotlin' in sel and kotlin_jar is not None:
                         tasks.append((run_kotlin, (kotlin_jar, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds)))
-                    if elixir_exs is not None:
+                    if 'elixir' in sel and elixir_exs is not None:
                         tasks.append((run_elixir, (elixir_exs, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds)))
-                    if erlang_beam is not None:
+                    if 'erlang' in sel and erlang_beam is not None:
                         tasks.append((run_erlang, (erlang_beam, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds)))
-                    if nim_bin is not None:
+                    if 'nim' in sel and nim_bin is not None:
                         tasks.append((run_nim, (nim_bin, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds)))
 
                     if tasks:
                         if args.jobs <= 1:
                             for func, pargs in tasks:
-                                rows = func(*pargs)
+                                try:
+                                    rows = func(*pargs)
+                                except Exception as e:
+                                    print(f'[warn] task failed: {e}', file=sys.stderr)
+                                    rows = []
                                 maybe_validate_and_add(rows)
                         else:
                             with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as ex:
