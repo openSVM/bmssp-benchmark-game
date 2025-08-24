@@ -1,0 +1,50 @@
+<nav class="site-nav">
+  <div class="nav-links">
+    <a href="{{ '/' | relative_url }}" {% if page.url == '/' %}class="current"{% endif %}>Home</a>
+    <a href="{{ '/algorithm.html' | relative_url }}" {% if page.url contains 'algorithm' %}class="current"{% endif %}>Algorithm</a>
+    <a href="{{ '/implementations.html' | relative_url }}" {% if page.url contains 'implementations' %}class="current"{% endif %}>Implementations</a>
+    <a href="{{ '/benchmarking.html' | relative_url }}" {% if page.url contains 'benchmarking' %}class="current"{% endif %}>Benchmarking</a>
+    <a href="{{ '/getting-started.html' | relative_url }}" {% if page.url contains 'getting-started' %}class="current"{% endif %}>Getting Started</a>
+  </div>
+</nav>
+
+<style>
+.site-nav {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  padding: 1rem 0;
+  margin-bottom: 2rem;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #007bff;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.nav-links a:hover {
+  background-color: #e9ecef;
+}
+
+.nav-links a.current {
+  background-color: #007bff;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}</style>

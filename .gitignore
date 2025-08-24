@@ -29,3 +29,10 @@ Thumbs.db
 
 # repo-local docs (not for git)
 GIGAPLAN.md
+
+# Jekyll build files
+docs/_site/
+docs/.sass-cache/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+docs/Gemfile.lock
