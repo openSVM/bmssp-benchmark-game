@@ -1,0 +1,42 @@
+title: "BMSSP Benchmark Game"
+description: "Bounded Multi-Source Shortest Paths: Algorithm Theory, Implementation Comparison, and Benchmarking"
+url: "https://opensvm.github.io"
+baseurl: "/bmssp-benchmark-game"
+
+# GitHub Pages and Jekyll settings
+remote_theme: "pages-themes/minimal@v0.2.0"
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Navigation
+navigation:
+  - title: "Home"
+    url: "/"
+  - title: "Algorithm"
+    url: "/algorithm"
+  - title: "Implementations"
+    url: "/implementations"
+  - title: "Benchmarking"
+    url: "/benchmarking"
+  - title: "Getting Started"
+    url: "/getting-started"
+
+# Markdown settings
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# SEO and metadata
+author: "openSVM"
+github_username: "openSVM"
+repository: "openSVM/bmssp-benchmark-game"
+
+# Site settings
+show_downloads: true
+github:
+  repository_url: "https://github.com/openSVM/bmssp-benchmark-game"
+  repository_name: "bmssp-benchmark-game"
