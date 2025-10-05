@@ -6,6 +6,33 @@ Languages currently wired in this repo: Rust, C, C++, Nim, Crystal, Kotlin (JAR)
 
 ## Benchmark snapshot
 
+# BMSSP 1000x Report
+
+Environment:
+- Host: Linux/6.11.0-1018-azure (x86_64)
+- CPU cores: 4
+- Git commit: 460fdc9
+
+<img width="600" height="400" alt="time_vs_popped" src="https://github.com/user-attachments/assets/aacfd5c0-ba3a-44af-8580-a59e78845f69" />
+
+## Best rows per implementation (largest explored set)
+
+| impl | lang | graph | n | m | k | B | threads | time_ns | popped | edges_scanned | heap_pushes | B_prime | mem_bytes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| c-bmssp | C | ba | 200000 | 999995 | 16 | 400 | 1 | 1779913 | 8010 | 40045 | 8995 | 400 | 17599920 |
+| cpp-bmssp | C++ | ba | 200000 | 999995 | 16 | 400 | 1 | 2254705 | 8374 | 41865 | 9473 | 400 | 17599920 |
+| kotlin-bmssp | Kotlin | ba | 200000 | 1999958 | 16 | 400 | 1 | 282058140 | 200000 | 1999958 | 402594 | 400 | 35199328 |
+| nim-bmssp | Nim | ba | 200000 | 999995 | 16 | 400 | 1 | 2143144 | 7267 | 36330 | 8252 | 400 | 17599920 |
+| rust-bmssp | Rust | ba | 200000 | 999995 | 16 | 400 | 1 | 2461474 | 8331 | 41650 | 9331 | 400 | 22799944 |
+| c-bmssp | C | grid | 102400 | 408320 | 16 | 400 | 1 | 732563 | 4878 | 19511 | 5957 | 400 | 7352320 |
+| cpp-bmssp | C++ | grid | 102400 | 408320 | 16 | 400 | 1 | 897503 | 4871 | 19455 | 5984 | 400 | 7352320 |
+| crystal-bmssp | Crystal | grid | 102400 | 408320 | 16 | 400 | 1 | 66888845 | 4741 | 18945 | 5797 | 400 | 7152652 |
+| elixir-bmssp | Elixir | grid | 102400 | 408320 | 16 | 400 | 1 | 431964997 | 4956 | 19775 | 6125 | 400 | 8171520 |
+| erlang-bmssp | Erlang | grid | 102400 | 408320 | 16 | 400 | 1 | 11623659 | 4699 | 18772 | 5748 | 400 | 8171520 |
+| kotlin-bmssp | Kotlin | grid | 102400 | 408320 | 16 | 400 | 1 | 34700586 | 5306 | 21202 | 6492 | 400 | 8171520 |
+| nim-bmssp | Nim | grid | 102400 | 408320 | 16 | 400 | 1 | 1932144 | 5051 | 20204 | 6228 | 400 | 7352320 |
+| rust-bmssp | Rust | grid | 102400 | 408320 | 16 | 400 | 1 | 1045159 | 5091 | 20326 | 6280 | 400 | 10014744 |
+
 | impl          | lang   | graph | n    | m    | k | B  | seed | threads | time_ns | popped | edges_scanned | heap_pushes | B_prime | mem_bytes |
 |---------------|--------|-------|------|------|---|----|------|---------|---------|--------|---------------|-------------|---------|-----------|
 | rust-bmssp    | Rust   | grid  | 2500 | 9800 | 4 | 50 | 1    | 1       | 741251  | 868    | 3423          | 1047        | 50      | 241824    |
@@ -14,6 +41,9 @@ Languages currently wired in this repo: Rust, C, C++, Nim, Crystal, Kotlin (JAR)
 | kotlin-bmssp  | Kotlin | grid  | 2500 | 9800 | 4 | 50 | 1    | 1       | 5308820 | 1102   | 4386          | 1309        | 50      | 196800    |
 | elixir-bmssp  | Elixir | grid  | 2500 | 9800 | 4 | 50 | 1    | 1       | 5410039 | 870    | 3447          | 1047        | 50      | 196800    |
 | erlang-bmssp  | Erlang | grid  | 2500 | 9800 | 4 | 50 | 1    | 1       | 1155739 | 691    | 2701          | 818         | 50      | 196800    |
+
+
+
 
 Rust implementation of **bounded multi-source shortest paths** (multi-source Dijkstra cut off at `B`).
 
