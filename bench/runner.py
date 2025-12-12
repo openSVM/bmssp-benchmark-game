@@ -281,6 +281,42 @@ def run_kotlin(jar_path, graph_cfg, B, k, trials, seed, maxw, timeout_s=0):
         r['graph_cfg'] = graph_cfg
     return rows
 
+def build_java(root):
+    jdir = root / 'impls' / 'java'
+    javac = shutil.which('javac')
+    java = shutil.which('java')
+    if javac is None or java is None:
+        print('[warn] Java (JDK) not found; skipping Java', file=sys.stderr)
+        return None
+    out = jdir / 'bmssp_java.jar'
+    src = jdir / 'src' / 'main' / 'java' / 'Main.java'
+    build_dir = jdir / 'build'
+    build_dir.mkdir(exist_ok=True)
+    subprocess.run([javac, str(src), '-d', str(build_dir)], cwd=jdir, check=True)
+    subprocess.run(['jar', 'cfe', str(out), 'Main', '-C', str(build_dir), '.'], cwd=jdir, check=True)
+    return out
+
+def run_java(jar_path, graph_cfg, B, k, trials, seed, maxw, timeout_s=0):
+    gtype = graph_cfg['type']
+    args = ['java', '-jar', str(jar_path), '--json', '--trials', str(trials), '--k', str(k), '--B', str(B), '--seed', str(seed), '--maxw', str(maxw), '--graph', gtype]
+    if gtype == 'grid':
+        args += ['--rows', str(graph_cfg['rows']), '--cols', str(graph_cfg['cols'])]
+    elif gtype == 'er':
+        args += ['--n', str(graph_cfg['n']), '--p', str(graph_cfg['p'])]
+    elif gtype == 'ba':
+        args += ['--n', str(graph_cfg['n']), '--m0', str(graph_cfg.get('m0',5)), '--m', str(graph_cfg.get('m',5))]
+    else:
+        return []
+    try:
+        p = subprocess.run(args, check=True, capture_output=True, text=True, timeout=(timeout_s or None))
+    except subprocess.TimeoutExpired:
+        print(f'[warn] java run timed out: {args}', file=sys.stderr)
+        return []
+    rows = [json.loads(line) for line in p.stdout.splitlines() if line.strip()]
+    for r in rows:
+        r['graph_cfg'] = graph_cfg
+    return rows
+
 def build_elixir(root):
     edir = root / 'impls' / 'elixir'
     if not shutil.which('elixir'):
@@ -409,7 +445,7 @@ def main():
     ap.add_argument('--smoke', action='store_true', help='use bench/smoke_matrix.yaml and enforce basic invariants')
     ap.add_argument('--parity', action='store_true', help='check simple cross-impl parity on grid graphs')
     ap.add_argument('--shared-inputs', action='store_true', help='use canonical shared graph+sources files for supported implementations')
-    ap.add_argument('--include-impls', default='', help='comma-separated list of impl keys to include (rust,c,cpp,kotlin,crystal,elixir,erlang,nim)')
+    ap.add_argument('--include-impls', default='', help='comma-separated list of impl keys to include (rust,c,cpp,java,kotlin,crystal,elixir,erlang,nim)')
     ap.add_argument('--exclude-impls', default='', help='comma-separated list of impl keys to exclude')
     args = ap.parse_args()
 
@@ -422,7 +458,7 @@ def main():
         rust_bin = ROOT / 'target' / 'debug' / 'bmssp-cli'
 
     # Impl filters
-    all_keys = {'rust','c','cpp','kotlin','crystal','elixir','erlang','nim'}
+    all_keys = {'rust','c','cpp','java','kotlin','crystal','elixir','erlang','nim'}
     inc = set(x.strip() for x in args.include_impls.split(',') if x.strip()) or set(all_keys)
     exc = set(x.strip() for x in args.exclude_impls.split(',') if x.strip())
     sel = (inc & all_keys) - exc
@@ -451,6 +487,12 @@ def main():
             kotlin_jar = build_kotlin(ROOT)
     except Exception as e:
         print(f'[warn] kotlin build skipped: {e}', file=sys.stderr)
+    java_jar = None
+    try:
+        if 'java' in sel:
+            java_jar = build_java(ROOT)
+    except Exception as e:
+        print(f'[warn] java build skipped: {e}', file=sys.stderr)
     elixir_exs = None
     try:
         if 'elixir' in sel:
@@ -563,6 +605,8 @@ def main():
                         tasks.append((run_cpp, (cpp_bin, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds, shared)))
                     if 'kotlin' in sel and kotlin_jar is not None:
                         tasks.append((run_kotlin, (kotlin_jar, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds)))
+                    if 'java' in sel and java_jar is not None:
+                        tasks.append((run_java, (java_jar, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds)))
                     if 'elixir' in sel and elixir_exs is not None:
                         tasks.append((run_elixir, (elixir_exs, g, B, k, cfg['trials'], cfg['seed'], cfg['maxw'], args.timeout_seconds)))
                     if 'erlang' in sel and erlang_beam is not None:

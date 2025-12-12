@@ -21,6 +21,8 @@ impls/zig/zig-cache/
 impls/nim/bmssp_nim
 impls/nim/bmssp_nim_dbg
 impls/kotlin/*.jar
+impls/java/*.jar
+impls/java/build/
 impls/erlang/*.beam
 
 # OS cruft

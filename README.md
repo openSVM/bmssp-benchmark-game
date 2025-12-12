@@ -2,7 +2,7 @@
 
 Implementation of the algorithm in multiple languages to compare performance in a standard GitHub Actions environment.
 
-Languages currently wired in this repo: Rust, C, C++, Nim, Crystal, Kotlin (JAR), Elixir (.exs), Erlang (.erl).
+Languages currently wired in this repo: Rust, C, C++, Java (JAR), Kotlin (JAR), Nim, Crystal, Elixir (.exs), Erlang (.erl).
 
 ## Benchmark snapshot
 
