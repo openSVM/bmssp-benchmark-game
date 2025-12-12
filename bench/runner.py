@@ -285,7 +285,8 @@ def build_java(root):
     jdir = root / 'impls' / 'java'
     javac = shutil.which('javac')
     java = shutil.which('java')
-    if javac is None or java is None:
+    jar = shutil.which('jar')
+    if javac is None or java is None or jar is None:
         print('[warn] Java (JDK) not found; skipping Java', file=sys.stderr)
         return None
     out = jdir / 'bmssp_java.jar'
@@ -293,7 +294,7 @@ def build_java(root):
     build_dir = jdir / 'build'
     build_dir.mkdir(exist_ok=True)
     subprocess.run([javac, str(src), '-d', str(build_dir)], cwd=jdir, check=True)
-    subprocess.run(['jar', 'cfe', str(out), 'Main', '-C', str(build_dir), '.'], cwd=jdir, check=True)
+    subprocess.run([jar, 'cfe', str(out), 'Main', '-C', str(build_dir), '.'], cwd=jdir, check=True)
     return out
 
 def run_java(jar_path, graph_cfg, B, k, trials, seed, maxw, timeout_s=0):
