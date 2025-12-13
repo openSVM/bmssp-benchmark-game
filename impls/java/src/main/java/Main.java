@@ -120,7 +120,7 @@ public class Main {
             if (e == null) break;
             if (e.d != dist[e.v]) continue;
             if (e.d >= B) {
-                bPrime = Math.min(bPrime, e.d);
+                bPrime = e.d;
                 break;
             }
             explored++;
